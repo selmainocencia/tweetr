@@ -1,0 +1,32 @@
+{
+  "name": "twitter-clone",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "docker:dev": "docker compose up --remove-orphans",
+    "docker:dev:bg": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:clean": "docker compose down -v",
+    "db:seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "mongoose": "^8.4.0",
+    "next": "^14.2.5",
+    "next-auth": "^4.24.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "autoprefixer": "^10.4.19",
+    "eslint": "^8",
+    "eslint-config-next": "^14.2.5",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4"
+  }
+}

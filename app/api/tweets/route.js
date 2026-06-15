@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-let mockTweets = [
+const MOCK = [
   {
     id: "1",
     author: "John Doe",
@@ -45,43 +45,36 @@ let mockTweets = [
   },
 ];
 
-async function tryDb() {
+export async function GET() {
   try {
     const { makeSureDbIsReady } = await import("@/lib/db");
     const { Tweet } = await import("@/models/Tweet");
     const { User } = await import("@/models/User");
     await makeSureDbIsReady();
-    return { Tweet, User, db: true };
-  } catch {
-    return { db: false };
-  }
-}
-
-export async function GET() {
-  const { Tweet, User, db } = await tryDb();
-  if (db) {
-    try {
-      const tweets = await Tweet.find({}).sort({ createdAt: -1 }).lean();
-      const enriched = await Promise.all(
-        tweets.map(async (tweet) => {
-          if (tweet.userId) {
+    const tweets = await Tweet.find({}).sort({ createdAt: -1 }).lean();
+    const enriched = await Promise.all(
+      tweets.map(async (tweet) => {
+        if (tweet.userId) {
+          try {
             const user = await User.findById(tweet.userId)
               .select("verified role")
               .lean();
             return {
               ...tweet,
-              verified: user?.verified && user?.role === "org",
+              verified: !!(user?.verified && user?.role === "org"),
             };
+          } catch {
+            return { ...tweet, verified: false };
           }
-          return { ...tweet, verified: false };
-        }),
-      );
-      return NextResponse.json(enriched);
-    } catch {
-      return NextResponse.json(mockTweets);
-    }
+        }
+        return { ...tweet, verified: false };
+      }),
+    );
+    return NextResponse.json(enriched);
+  } catch (err) {
+    console.error("Tweets API error:", err.message);
+    return NextResponse.json(MOCK);
   }
-  return NextResponse.json(mockTweets);
 }
 
 export async function POST(req) {
@@ -99,69 +92,51 @@ export async function POST(req) {
   if (!content?.trim()) {
     return NextResponse.json({ error: "Content is required" }, { status: 400 });
   }
-
-  const { Tweet, User, db } = await tryDb();
-  if (db) {
-    try {
-      const tweet = await Tweet.create({
-        content: content.trim(),
-        author: author || "Anonymous",
-        handle: handle || "@user",
-        likes: 0,
-        comments: 0,
-        retweets: 0,
-        userId,
-        postType,
-        subCategory,
-        isRetweet: isRetweet || false,
-        retweetedFrom: retweetedFrom || "",
-      });
-      let verified = false;
-      if (userId) {
+  try {
+    const { makeSureDbIsReady } = await import("@/lib/db");
+    const { Tweet } = await import("@/models/Tweet");
+    const { User } = await import("@/models/User");
+    await makeSureDbIsReady();
+    const tweet = await Tweet.create({
+      content: content.trim(),
+      author: author || "Anonymous",
+      handle: handle || "@user",
+      likes: 0,
+      comments: 0,
+      retweets: 0,
+      userId,
+      postType,
+      subCategory,
+      isRetweet: isRetweet || false,
+      retweetedFrom: retweetedFrom || "",
+    });
+    let verified = false;
+    if (userId) {
+      try {
         const user = await User.findById(userId).select("verified role").lean();
-        verified = user?.verified && user?.role === "org";
-      }
-      return NextResponse.json(
-        { ...tweet.toObject(), verified },
-        { status: 201 },
-      );
-    } catch {
-      // fall through
+        verified = !!(user?.verified && user?.role === "org");
+      } catch {}
     }
+    return NextResponse.json(
+      { ...tweet.toObject(), verified },
+      { status: 201 },
+    );
+  } catch (err) {
+    console.error("POST tweet error:", err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-
-  const newTweet = {
-    id: Date.now().toString(),
-    author: author || "Anonymous",
-    handle: handle || "@user",
-    content: content.trim(),
-    likes: 0,
-    comments: 0,
-    retweets: 0,
-    postType: postType || "advocacy",
-    subCategory: subCategory || "",
-    verified: false,
-    isRetweet: isRetweet || false,
-    retweetedFrom: retweetedFrom || "",
-    createdAt: new Date().toISOString(),
-  };
-  mockTweets = [newTweet, ...mockTweets];
-  return NextResponse.json(newTweet, { status: 201 });
 }
 
 export async function DELETE(req) {
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
-
-  const { Tweet, db } = await tryDb();
-  if (db) {
-    try {
-      await Tweet.findByIdAndDelete(id);
-      return NextResponse.json({ success: true });
-    } catch {
-      // fall through
-    }
+  try {
+    const { makeSureDbIsReady } = await import("@/lib/db");
+    const { Tweet } = await import("@/models/Tweet");
+    await makeSureDbIsReady();
+    await Tweet.findByIdAndDelete(id);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-  mockTweets = mockTweets.filter((t) => t.id !== id);
-  return NextResponse.json({ success: true });
 }

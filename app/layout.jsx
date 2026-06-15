@@ -1,4 +1,5 @@
 import "./globals.css";
+import { Suspense } from "react";
 import Providers from "@/components/Providers";
 import LeftSidebar from "@/components/LeftSidebar";
 import RightSidebar from "@/components/RightSidebar";
@@ -16,13 +17,21 @@ export default function RootLayout({ children }) {
         <Providers>
           <div className="min-h-screen flex justify-center">
             <div className="flex w-full max-w-7xl">
-              <LeftSidebar />
-
+              <Suspense
+                fallback={<div className="w-16 xl:w-72 flex-shrink-0" />}
+              >
+                <LeftSidebar />
+              </Suspense>
               <main className="flex-1 min-w-0 border-x border-zinc-900 min-h-screen max-w-2xl">
-                {children}
+                <Suspense fallback={null}>{children}</Suspense>
               </main>
-
-              <RightSidebar />
+              <Suspense
+                fallback={
+                  <div className="w-80 flex-shrink-0 hidden lg:block" />
+                }
+              >
+                <RightSidebar />
+              </Suspense>
             </div>
           </div>
         </Providers>

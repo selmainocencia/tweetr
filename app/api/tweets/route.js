@@ -46,6 +46,11 @@ const MOCK = [
 ];
 
 export async function GET() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.error("MONGODB_URI is not defined in environment");
+    return NextResponse.json(MOCK);
+  }
   try {
     const { makeSureDbIsReady } = await import("@/lib/db");
     const { Tweet } = await import("@/models/Tweet");
@@ -72,7 +77,7 @@ export async function GET() {
     );
     return NextResponse.json(enriched);
   } catch (err) {
-    console.error("Tweets API error:", err.message);
+    console.error("Tweets API DB error:", err.message);
     return NextResponse.json(MOCK);
   }
 }

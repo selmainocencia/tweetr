@@ -262,3 +262,5 @@ export default function ContactPage() {
     </div>
   );
 }
+
+export const dynamic = 'force-dynamic';

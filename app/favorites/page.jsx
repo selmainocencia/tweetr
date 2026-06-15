@@ -75,3 +75,5 @@ export default function FavoritesPage() {
     </div>
   );
 }
+
+export const dynamic = 'force-dynamic';
